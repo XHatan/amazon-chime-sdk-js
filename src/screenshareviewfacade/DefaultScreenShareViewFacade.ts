@@ -24,7 +24,8 @@ export default class DefaultScreenShareViewFacade implements ScreenShareViewFaca
   constructor(private configuration: MeetingSessionConfiguration, private logger: Logger) {
     const reconnectingWSFactory = new ReconnectingPromisedWebSocketFactory(
       new DefaultPromisedWebSocketFactory(new DefaultDOMWebSocketFactory()),
-      new FullJitterBackoffFactory(1000, 100, 300)
+      new FullJitterBackoffFactory(1000, 100, 300),
+      configuration.screenSharingSessionOptions.reconnectRetryLimit
     );
     this.screenViewing = new DefaultScreenViewing(
       new DefaultScreenViewingComponentContext(
