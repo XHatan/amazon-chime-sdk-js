@@ -188,6 +188,18 @@ export default class DefaultScreenViewingDeltaRenderer implements ScreenViewingD
     }
   }
 
+  hideViewport(): void {
+    if (this.viewport) {
+      this.viewport.style.display = 'none';
+    }
+  }
+
+  revealViewport(): void {
+    if (this.viewport) {
+      this.viewport.style.display = 'block';
+    }
+  }
+
   changePresentationPolicy(policy: PresentationPolicy): void {
     this.policy = policy;
     this.updatePresentation();

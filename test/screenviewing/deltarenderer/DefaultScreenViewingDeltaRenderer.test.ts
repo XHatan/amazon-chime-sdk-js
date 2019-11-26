@@ -434,4 +434,21 @@ describe('DefaultScreenViewingDeltaRenderer', () => {
       deltaRenderer.zoomReset();
     });
   });
+
+  describe('hideViewport and revealViewport', () => {
+    it('hides and reveals the viewport', () => {
+      const deltaRenderer: ScreenViewingDeltaRenderer = new DefaultScreenViewingDeltaRenderer(
+        controller,
+        logger,
+        Substitute.for(),
+        Substitute.for(),
+        Substitute.for()
+      );
+      deltaRenderer.hideViewport();
+      deltaRenderer.revealViewport();
+      deltaRenderer.setViewport(Substitute.for());
+      deltaRenderer.hideViewport();
+      deltaRenderer.revealViewport();
+    });
+  });
 });
