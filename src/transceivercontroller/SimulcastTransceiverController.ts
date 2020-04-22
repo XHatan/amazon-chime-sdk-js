@@ -35,6 +35,49 @@ export default class SimulcastTransceiverController implements TransceiverContro
     );
   }
 
+  async setEncodingParameters(encodingParamMap: Map<string, RTCRtpEncodingParameters>): Promise<void> {
+    if (!this._localCameraTransceiver || this._localCameraTransceiver.direction !== 'sendrecv') {
+      return;
+    }
+
+    const sender = this._localCameraTransceiver.sender;
+    if (!sender) {
+      return;
+    }
+
+    const newEncodingParams = Array.from(encodingParamMap.values());
+    if (newEncodingParams.length <= 0) {
+      console.log('random input encoding parameters are empty');
+      return;
+    }
+    console.log('random input params', newEncodingParams);
+
+    const oldParam: RTCRtpSendParameters = sender.getParameters();
+    console.log('random original', oldParam.encodings);
+    if (!oldParam.encodings) {
+      oldParam.encodings = newEncodingParams;
+    } else {
+      for (let i = 0; i < oldParam.encodings.length; i++) {
+        if (oldParam.encodings[i].rid === SimulcastTransceiverController.LOW_LEVEL_NAME) {
+          oldParam.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.LOW_LEVEL_NAME).maxBitrate;
+          oldParam.encodings[i].active = encodingParamMap.get(SimulcastTransceiverController.LOW_LEVEL_NAME).active;
+        }
+        if (oldParam.encodings[i].rid === SimulcastTransceiverController.MID_LEVEL_NAME) {
+          oldParam.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.MID_LEVEL_NAME).maxBitrate;
+          oldParam.encodings[i].active = encodingParamMap.get(SimulcastTransceiverController.MID_LEVEL_NAME).active;
+        }
+        if (oldParam.encodings[i].rid === SimulcastTransceiverController.HIGH_LEVEL_NAME) {
+          oldParam.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.HIGH_LEVEL_NAME).maxBitrate;
+          oldParam.encodings[i].active = encodingParamMap.get(SimulcastTransceiverController.HIGH_LEVEL_NAME).active;
+        }
+      }
+    }
+
+    await sender.setParameters(oldParam);
+
+    console.log('random get params', sender.getParameters().encodings);
+  }
+
   static async setVideoSendingBitrateKbpsForSender(
     sender: RTCRtpSender,
     bitrateKbps: number,
@@ -70,13 +113,13 @@ export default class SimulcastTransceiverController implements TransceiverContro
 
   static async setVideoSendingBitrateKbpsForSender2(
     sender: RTCRtpSender,
-    qualityParams: Map<string, RTCRtpEncodingParameters>,
+    encodingParamMap: Map<string, RTCRtpEncodingParameters>,
     _logger: Logger
   ): Promise<void> {
-    if (!sender || !qualityParams) {
+    if (!sender || !encodingParamMap) {
       return;
     }
-    const newEncodingParams = Array.from(qualityParams.values());
+    const newEncodingParams = Array.from(encodingParamMap.values());
     if (newEncodingParams.length <= 0) {
       return;
     }
@@ -89,13 +132,13 @@ export default class SimulcastTransceiverController implements TransceiverContro
     } else {
       for (let i = 0; i < param.encodings.length; i++) {
         if (param.encodings[i].rid === SimulcastTransceiverController.LOW_LEVEL_NAME) {
-          param.encodings[i].maxBitrate = qualityParams.get(SimulcastTransceiverController.LOW_LEVEL_NAME).maxBitrate;
+          param.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.LOW_LEVEL_NAME).maxBitrate;
         }
         if (param.encodings[i].rid === SimulcastTransceiverController.MID_LEVEL_NAME) {
-          param.encodings[i].maxBitrate = qualityParams.get(SimulcastTransceiverController.MID_LEVEL_NAME).maxBitrate;
+          param.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.MID_LEVEL_NAME).maxBitrate;
         }
         if (param.encodings[i].rid === SimulcastTransceiverController.HIGH_LEVEL_NAME) {
-          param.encodings[i].maxBitrate = qualityParams.get(SimulcastTransceiverController.HIGH_LEVEL_NAME).maxBitrate;
+          param.encodings[i].maxBitrate = encodingParamMap.get(SimulcastTransceiverController.HIGH_LEVEL_NAME).maxBitrate;
         }
       }
     }

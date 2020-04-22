@@ -16,6 +16,10 @@ export default class DefaultTransceiverController implements TransceiverControll
 
   constructor(private logger: Logger, private browserBehavior: BrowserBehavior) {}
 
+  setEncodingParameters(params: Map<string, RTCRtpEncodingParameters>): void {
+    throw new Error("Method not implemented.");
+  }
+
   static async setVideoSendingBitrateKbpsForSender(
     sender: RTCRtpSender,
     bitrateKbps: number,

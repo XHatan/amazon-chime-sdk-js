@@ -71,4 +71,6 @@ export default interface TransceiverController {
    * Returns the [[RTCRtpTransceiver]] for local camera
    */
   localVideoTransceiver(): RTCRtpTransceiver;
+
+  setEncodingParameters(params: Map<string, RTCRtpEncodingParameters>): void;
 }

@@ -210,6 +210,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
     if (this.enableSimulcast) {
       this.meetingSessionContext.videoDownlinkBandwidthPolicy = new AllHighestVideoBandwidthPolicy(
         this.configuration.credentials.attendeeId,
+        // this.videoTileController
       );
       this.meetingSessionContext.videoUplinkBandwidthPolicy = new SimulcastUplinkPolicy(
         this.configuration.credentials.attendeeId
@@ -656,17 +657,24 @@ export default class DefaultAudioVideoController implements AudioVideoController
   async handleHasBandwidthPriority(hasBandwidthPriority: boolean): Promise<void> {
     if (this.meetingSessionContext && this.meetingSessionContext.videoUplinkBandwidthPolicy) {
       this.logger.info(`video send has bandwidth priority: ${hasBandwidthPriority}`);
-      const oldMaxBandwidth = this.meetingSessionContext.videoUplinkBandwidthPolicy.maxBandwidthKbps();
+      // const oldMaxBandwidth = this.meetingSessionContext.videoUplinkBandwidthPolicy.maxBandwidthKbps();
+
       this.meetingSessionContext.videoUplinkBandwidthPolicy.setHasBandwidthPriority(
         hasBandwidthPriority
       );
-      const newMaxBandwidth = this.meetingSessionContext.videoUplinkBandwidthPolicy.maxBandwidthKbps();
-      if (oldMaxBandwidth !== newMaxBandwidth) {
-        this.logger.info(
-          `video send bandwidth max has changed from ${oldMaxBandwidth} kbps to ${newMaxBandwidth} kbps`
-        );
-        await this.enforceBandwidthLimitationForSender(newMaxBandwidth);
+      // const newMaxBandwidth = this.meetingSessionContext.videoUplinkBandwidthPolicy.maxBandwidthKbps();
+
+      if (this.meetingSessionContext.enableSimulcast) {
+        const encodingParams = this.meetingSessionContext.videoUplinkBandwidthPolicy.chooseEncodingParameters();
+        console.log(`random video send transceiver controller from bandwidth priority`, encodingParams);
+        await this.meetingSessionContext.transceiverController.setEncodingParameters(encodingParams);
       }
+      // if (oldMaxBandwidth !== newMaxBandwidth) {
+      //   this.logger.info(
+      //     `video send bandwidth max has changed from ${oldMaxBandwidth} kbps to ${newMaxBandwidth} kbps`
+      //   );
+      //   await this.enforceBandwidthLimitationForSender(newMaxBandwidth);
+      // }
     }
   }
 
@@ -681,4 +689,5 @@ export default class DefaultAudioVideoController implements AudioVideoController
       this.meetingSessionContext.signalingClient.resume([streamId]);
     }
   }
+
 }

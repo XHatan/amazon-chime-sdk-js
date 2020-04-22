@@ -16,40 +16,43 @@ export default class SimulcastUplinkPolicy implements VideoUplinkBandwidthPolicy
   private parametersInEffect: DefaultVideoAndEncodeParameter;
   private idealMaxBandwidthKbps = 1400;
   private hasBandwidthPriority: boolean = false;
+  private qualityMap = new Map<string, RTCRtpEncodingParameters>();
 
   constructor(private selfAttendeeId: string) {
     this.optimalParameters = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, true);
     this.parametersInEffect = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, true);
-  }
-
-  chooseEncodingParameters(): Map<string, RTCRtpEncodingParameters> {
-    const qualityMap = new Map<string, RTCRtpEncodingParameters>();
-    qualityMap.set(
+    this.qualityMap.set(
       SimulcastTransceiverController.LOW_LEVEL_NAME,
       {
         rid: SimulcastTransceiverController.LOW_LEVEL_NAME,
+        active: true,
         scaleResolutionDownBy: 4,
         maxBitrate: 400
       }
     );
 
-    qualityMap.set(
+    this.qualityMap.set(
       SimulcastTransceiverController.MID_LEVEL_NAME,
       {
         rid: SimulcastTransceiverController.MID_LEVEL_NAME,
+        active: true,
         scaleResolutionDownBy: 2,
         maxBitrate: 800
       }
     );
-    qualityMap.set(
+    this.qualityMap.set(
       SimulcastTransceiverController.HIGH_LEVEL_NAME,
       {
         rid: SimulcastTransceiverController.HIGH_LEVEL_NAME,
+        active: true,
         scaleResolutionDownBy: 1,
         maxBitrate: 1400
       }
     );
-    return qualityMap;
+  }
+
+  chooseEncodingParameters(): Map<string, RTCRtpEncodingParameters> {
+    return this.qualityMap;
   }
 
   updateIndex(videoIndex: VideoStreamIndex): void {
@@ -110,5 +113,13 @@ export default class SimulcastUplinkPolicy implements VideoUplinkBandwidthPolicy
 
   setHasBandwidthPriority(hasBandwidthPriority: boolean): void {
     this.hasBandwidthPriority = hasBandwidthPriority;
+    const highEncodingParam = this.qualityMap.get(SimulcastTransceiverController.HIGH_LEVEL_NAME);
+    if (this.hasBandwidthPriority) {
+      highEncodingParam.active = true;
+    } else {
+      highEncodingParam.active = false;
+    }
+
+    this.qualityMap.set(SimulcastTransceiverController.HIGH_LEVEL_NAME, highEncodingParam);
   }
 }
