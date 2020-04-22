@@ -42,17 +42,21 @@ export default class SubscribeAndReceiveSubscribeAckTask extends BaseTask {
       if (this.context.browserBehavior.requiresUnifiedPlanMunging()) {
         localSdp = new DefaultSDP(this.context.peer.localDescription.sdp).withUnifiedPlanFormat()
           .sdp;
+          if (this.context.enableSimulcast && this.context.browserBehavior.requiresSimulcastMunging()) {
+            // safari simulcast
+            localSdp = new DefaultSDP(localSdp).withOldFashionedMungingSimulcast(3).sdp;
+          }
       } else {
         localSdp = this.context.peer.localDescription.sdp;
       }
     }
 
-    let frameRate = 0;
-    let maxEncodeBitrateKbps = 0;
-    if (this.context.videoCaptureAndEncodeParameter) {
-      frameRate = this.context.videoCaptureAndEncodeParameter.captureFrameRate();
-      maxEncodeBitrateKbps = this.context.videoCaptureAndEncodeParameter.encodeBitrates()[0];
-    }
+    // let frameRate = 0;
+    // let maxEncodeBitrateKbps = 0;
+    // if (this.context.videoCaptureAndEncodeParameter) {
+    //   frameRate = this.context.videoCaptureAndEncodeParameter.captureFrameRate();
+    //   maxEncodeBitrateKbps = this.context.videoCaptureAndEncodeParameter.encodeBitrates()[0];
+    // }
 
     const isSendingStreams: boolean =
       this.context.videoDuplexMode === SdkStreamServiceType.TX ||
@@ -66,8 +70,7 @@ export default class SubscribeAndReceiveSubscribeAckTask extends BaseTask {
       false,
       this.context.videoSubscriptions,
       isSendingStreams,
-      frameRate,
-      maxEncodeBitrateKbps,
+      this.context.videoStreamIndex.localStreamInfos(),
       // TODO: handle check-in mode, or remove this param
       true
     );

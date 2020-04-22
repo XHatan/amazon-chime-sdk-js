@@ -1,6 +1,8 @@
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import VideoStreamDescription from "../videostreamindex/VideoStreamDescription";
+
 /**
  * [[SignalingClientSubscribe]] contains settings for the Subscribe SignalFrame.
  */
@@ -26,8 +28,7 @@ export default class SignalingClientSubscribe {
     public audioCheckin: boolean,
     public receiveStreamIds: number[],
     public localVideoEnabled: boolean,
-    public videoInputFrameRate: number,
-    public videoInputMaxBitrateKbps: number,
+    public videoStreamDescriptions: VideoStreamDescription[],
     public connectionTypeHasVideo: boolean
   ) {}
 }

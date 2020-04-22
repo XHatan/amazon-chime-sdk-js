@@ -150,6 +150,20 @@ export default class MonitorTask extends BaseTask
       return;
     }
 
+    if (this.context.activeVideoInput) {
+      const sender = this.context.transceiverController.localVideoTransceiver().sender;
+      const param = sender.getParameters();
+      console.log('random check encoding param', param.encodings);
+      if (!!param.encodings) {
+        for (const encodeParam of param.encodings) {
+          if (encodeParam.active === false) {
+            console.log('random encoder ', encodeParam.rid, encodeParam.maxBitrate);
+          }
+        }
+      }
+    }
+
+
     const downlinkVideoStream: Map<number, StreamMetricReport> = new Map<
       number,
       StreamMetricReport
@@ -243,40 +257,47 @@ export default class MonitorTask extends BaseTask
     }
   }
 
+  private handleBitrateFrame(bitrates: ISdkBitrateFrame): void {
+    const videoSubscription: number[] = this.context.videoSubscriptions || [];
+
+    let requiredBandwidthKbps = 0;
+    this.currentAvailableStreamAvgBitrates = bitrates;
+    console.log('random bitrate message', JSON.stringify(bitrates));
+    for (const bitrate of bitrates.bitrates) {
+      if (videoSubscription.indexOf(bitrate.sourceStreamId) !== -1) {
+        requiredBandwidthKbps += bitrate.avgBitrateBps;
+      }
+    }
+    requiredBandwidthKbps /= 1000;
+
+    if (
+      this.currentVideoDownlinkBandwidthEstimationKbps *
+        MonitorTask.DEFAULT_DOWNLINK_CALLRATE_OVERSHOOT_FACTOR <
+      requiredBandwidthKbps
+    ) {
+      this.logger.info(
+        `Downlink bandwidth pressure is high: estimated bandwidth ${this.currentVideoDownlinkBandwidthEstimationKbps}Kbps, required bandwidth ${requiredBandwidthKbps}Kbps`
+      );
+      this.context.audioVideoController.forEachObserver((observer: AudioVideoObserver) => {
+        Maybe.of(observer.estimatedDownlinkBandwidthLessThanRequired).map(f =>
+          f.bind(observer)(
+            this.currentVideoDownlinkBandwidthEstimationKbps,
+            requiredBandwidthKbps
+          )
+        );
+      });
+    }
+
+    this.context.videoStreamIndex.updateFromBitrateFrame(bitrates);
+  }
+
   handleSignalingClientEvent(event: SignalingClientEvent): void {
     if (event.type !== SignalingClientEventType.ReceivedSignalFrame) {
       return;
     }
 
     if (!!event.message.bitrates) {
-      const videoSubscription: number[] = this.context.videoSubscriptions || [];
-
-      let requiredBandwidthKbps = 0;
-      this.currentAvailableStreamAvgBitrates = event.message.bitrates;
-      for (const bitrate of event.message.bitrates.bitrates) {
-        if (videoSubscription.indexOf(bitrate.sourceStreamId) !== -1) {
-          requiredBandwidthKbps += bitrate.avgBitrateBps;
-        }
-      }
-      requiredBandwidthKbps /= 1000;
-
-      if (
-        this.currentVideoDownlinkBandwidthEstimationKbps *
-          MonitorTask.DEFAULT_DOWNLINK_CALLRATE_OVERSHOOT_FACTOR <
-        requiredBandwidthKbps
-      ) {
-        this.logger.info(
-          `Downlink bandwidth pressure is high: estimated bandwidth ${this.currentVideoDownlinkBandwidthEstimationKbps}Kbps, required bandwidth ${requiredBandwidthKbps}Kbps`
-        );
-        this.context.audioVideoController.forEachObserver((observer: AudioVideoObserver) => {
-          Maybe.of(observer.estimatedDownlinkBandwidthLessThanRequired).map(f =>
-            f.bind(observer)(
-              this.currentVideoDownlinkBandwidthEstimationKbps,
-              requiredBandwidthKbps
-            )
-          );
-        });
-      }
+      this.handleBitrateFrame(event.message.bitrates);
     }
     const status = MeetingSessionStatus.fromSignalFrame(event.message);
     if (status.statusCode() !== MeetingSessionStatusCode.OK) {

@@ -63,7 +63,10 @@ import NScaleVideoUplinkBandwidthPolicy from '../videouplinkbandwidthpolicy/NSca
 import DefaultVolumeIndicatorAdapter from '../volumeindicatoradapter/DefaultVolumeIndicatorAdapter';
 import WebSocketAdapter from '../websocketadapter/WebSocketAdapter';
 import AudioVideoControllerState from './AudioVideoControllerState';
-
+import SimulcastTransceiverController from '../transceivercontroller/SimulcastTransceiverController';
+import SimulcastVideoStreamIndex from '../videostreamindex/SimulcastVideoStreamIndex';
+import SimulcastUplinkPolicy from '../videouplinkbandwidthpolicy/SimulcastUplinkPolicy';
+// import VideoAdaptiveSubscribePolicy from '../videodownlinkbandwidthpolicy/VideoAdaptiveSubscribePolicy';
 export default class DefaultAudioVideoController implements AudioVideoController {
   private _logger: Logger;
   private _configuration: MeetingSessionConfiguration;
@@ -83,6 +86,8 @@ export default class DefaultAudioVideoController implements AudioVideoController
   private static MIN_VOLUME_DECIBELS = -42;
   private static MAX_VOLUME_DECIBELS = -14;
   private static PING_PONG_INTERVAL_MS = 10000;
+
+  private enableSimulcast: boolean = true;
 
   constructor(
     configuration: MeetingSessionConfiguration,
@@ -191,7 +196,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
     this.meetingSessionContext.realtimeController = this._realtimeController;
     this.meetingSessionContext.audioMixController = this._audioMixController;
     this.meetingSessionContext.audioVideoController = this;
-    this.meetingSessionContext.transceiverController = new DefaultTransceiverController(
+    this.meetingSessionContext.transceiverController = new SimulcastTransceiverController(
       this.logger,
       this.meetingSessionContext.browserBehavior
     );
@@ -202,13 +207,26 @@ export default class DefaultAudioVideoController implements AudioVideoController
       DefaultAudioVideoController.MAX_VOLUME_DECIBELS
     );
     this.meetingSessionContext.videoTileController = this._videoTileController;
-    this.meetingSessionContext.videoStreamIndex = new DefaultVideoStreamIndex(this.logger);
-    this.meetingSessionContext.videoDownlinkBandwidthPolicy = new AllHighestVideoBandwidthPolicy(
-      this.configuration.credentials.attendeeId
-    );
-    this.meetingSessionContext.videoUplinkBandwidthPolicy = new NScaleVideoUplinkBandwidthPolicy(
-      this.configuration.credentials.attendeeId
-    );
+    if (this.enableSimulcast) {
+      this.meetingSessionContext.videoDownlinkBandwidthPolicy = new AllHighestVideoBandwidthPolicy(
+        this.configuration.credentials.attendeeId,
+      );
+      this.meetingSessionContext.videoUplinkBandwidthPolicy = new SimulcastUplinkPolicy(
+        this.configuration.credentials.attendeeId
+      );
+      this.meetingSessionContext.videoStreamIndex = new SimulcastVideoStreamIndex(this.logger);
+      this.meetingSessionContext.enableSimulcast = true;
+
+    } else {
+      this.meetingSessionContext.videoDownlinkBandwidthPolicy = new AllHighestVideoBandwidthPolicy(
+        this.configuration.credentials.attendeeId
+      );
+      this.meetingSessionContext.videoUplinkBandwidthPolicy = new NScaleVideoUplinkBandwidthPolicy(
+        this.configuration.credentials.attendeeId
+      );
+      this.meetingSessionContext.videoStreamIndex = new DefaultVideoStreamIndex(this.logger);
+    }
+
     this.meetingSessionContext.lastKnownVideoAvailability = new MeetingSessionVideoAvailability();
     this.meetingSessionContext.videoCaptureAndEncodeParameter = new DefaultVideoCaptureAndEncodeParameter(
       0,
@@ -579,7 +597,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
         maxBitrateKbps
       );
     } else {
-      await DefaultTransceiverController.setVideoSendingBitrateKbpsForSender(
+      await SimulcastTransceiverController.setVideoSendingBitrateKbpsForSender(
         this.meetingSessionContext.localVideoSender,
         maxBitrateKbps,
         this.meetingSessionContext.logger

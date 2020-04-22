@@ -4,53 +4,142 @@
 import Logger from '../logger/Logger';
 import {
   ISdkStreamDescriptor,
-  ISdkBitrateFrame,
   SdkIndexFrame,
   SdkStreamMediaType,
   SdkSubscribeAckFrame,
+  SdkBitrateFrame
 } from '../signalingprotocol/SignalingProtocol.js';
 import DefaultVideoStreamIdSet from '../videostreamidset/DefaultVideoStreamIdSet';
 import VideoStreamIndex from '../videostreamindex/VideoStreamIndex';
 import VideoStreamDescription from './VideoStreamDescription';
 
 /**
- * [[DefaultVideoStreamIndex]] implements [[VideoStreamIndex]] to facilitate video stream subscription
- * and includes query functions for stream id and attendee id.
+ * [[SimulcastTransceiverController]] implements [[VideoStreamIndex]] to facilitate video stream
+ * subscription and includes query functions for stream id and attendee id.
  */
-export default class DefaultVideoStreamIndex implements VideoStreamIndex {
+export default class SimulcastVideoStreamIndex implements VideoStreamIndex {
   private currentIndex: SdkIndexFrame | null = null;
   private currentSubscribeAck: SdkSubscribeAckFrame | null = null;
   private trackToStreamMap: Map<string, number> | null = null;
   private streamToAttendeeMap: Map<number, string> | null = null;
   private ssrcToStreamMap: Map<number, number> | null = null;
+  private streamIdToBitrateKbpsMap: Map<number, number> = new Map<number, number>();
+
+  static readonly UNSEEN_STREAM_BITRATE = -2;
+  static readonly RECENTLY_INACTIVE_STREAM_BITRATE = -1;
+  static readonly NOT_SENDING_STREAM_BITRATE = 0;
+
+  private _localStreamInfos: VideoStreamDescription[] = [];
+  public _remoteStreamInfos: VideoStreamDescription[] = [];
 
   constructor(private logger: Logger) {}
 
-  updateFromBitrateFrame(bitrateFrame: ISdkBitrateFrame): void {
-    throw new Error("Method not implemented.");
-  }
 
   localStreamInfos(): VideoStreamDescription[] {
-    return [new VideoStreamDescription()];
+    return this._localStreamInfos;
   }
 
   remoteStreamInfos(): VideoStreamDescription[] {
-    throw new Error("Method not implemented.");
+    return this._remoteStreamInfos;
   }
 
-  updateFromUplinkPolicyDecision(bitrates: RTCRtpEncodingParameters[]): void {
-    throw new Error("Method not implemented.");
+  updateFromUplinkPolicyDecision(bitrates: RTCRtpEncodingParameters[]) {
+    let localStreamIndex: number = 0;
+    let hasStreamsToReuse: boolean = true;
+    // TODO:
+    console.log('random updateFromUplinkPolicy before', JSON.stringify(this._localStreamInfos));
+    for (let i = 0; i < bitrates.length; i++) {
+      if (i === this._localStreamInfos.length) {
+        const newInfo = new VideoStreamDescription();
+        newInfo.maxBitrateKbps = bitrates[i].maxBitrate;
+        this._localStreamInfos.push(newInfo);
+        localStreamIndex++;
+        continue;
+      }
+      // if (!hasStreamsToReuse || localStreamIndex === this.localStreamInfos.length) {
+      //   hasStreamsToReuse = false;
+      //   const newInfo = new VideoClientStreamInfo();
+      //   newInfo.maxBitrateKbps = bitrates[i];
+      //   this.localStreamInfos.push(newInfo);
+      //   continue;
+      // }
+      this._localStreamInfos[localStreamIndex].maxBitrateKbps = bitrates[i].maxBitrate;
+      this._localStreamInfos[localStreamIndex].maxBitrateKbps = bitrates[i].maxFramerate;
+      localStreamIndex++;
+    }
+
+    if (hasStreamsToReuse) {
+      console.log('random remove extra info');
+      this._localStreamInfos.splice(localStreamIndex);
+    }
+    console.log('random updateFromUplinkPolicyDecision', JSON.stringify(this._localStreamInfos));
+  }
+
+  updateFromBitrateFrame(bitrateFrame: SdkBitrateFrame): void {
+    const stillSending = new Set<number>();
+    const existingSet = new Set<number>(this.streamIdToBitrateKbpsMap.keys());
+    for (const bitrateMsg of bitrateFrame.bitrates) {
+      stillSending.add(bitrateMsg.sourceStreamId);
+      this.streamIdToBitrateKbpsMap.set(bitrateMsg.sourceStreamId, Math.trunc(bitrateMsg.avgBitrateBps / 1000));
+    }
+
+    for (const id of existingSet) {
+      if (!stillSending.has(id)) {
+        const avgBitrateBps = this.streamIdToBitrateKbpsMap.get(id);
+        if (avgBitrateBps === SimulcastVideoStreamIndex.UNSEEN_STREAM_BITRATE) {
+          this.streamIdToBitrateKbpsMap.set(id, SimulcastVideoStreamIndex.RECENTLY_INACTIVE_STREAM_BITRATE);
+        } else {
+          this.streamIdToBitrateKbpsMap.set(id, SimulcastVideoStreamIndex.NOT_SENDING_STREAM_BITRATE);
+        }
+      }
+    }
   }
 
   integrateIndexFrame(indexFrame: SdkIndexFrame): void {
     this.currentIndex = indexFrame;
+    console.log('random indexframe', indexFrame);
     this.streamToAttendeeMap = null;
     this.ssrcToStreamMap = null;
   }
 
-  integrateSubscribeAckFrame(subscribeAck: SdkSubscribeAckFrame): void {
+  integrateSubscribeAckFrame(subscribeAck: SdkSubscribeAckFrame) {
+    console.log('random subAck', subscribeAck);
+    console.log('random local before', JSON.stringify(this._localStreamInfos));
+    console.log('random remote before', JSON.stringify(this._remoteStreamInfos));
     this.currentSubscribeAck = subscribeAck;
     this.trackToStreamMap = null;
+    if (!subscribeAck.allocations || subscribeAck.allocations === undefined) {
+      return;
+    }
+
+    let localStreamStartIndex = 0;
+    for (const allocation of subscribeAck.allocations) {
+      console.log('random allocation ', allocation, localStreamStartIndex)
+      // track label is what we offered to the server
+      // if (allocation.trackLabel.toLowerCase().includes('audio') === true) {
+      //   console.log('random has audio stream');
+      //   continue;
+      // }
+      if (this._localStreamInfos.length < localStreamStartIndex + 1) {
+        console.log('random subscribe ack allocation count greater than local stream count');
+        break;
+      }
+      this._localStreamInfos[localStreamStartIndex].groupId = allocation.groupId;
+      this._localStreamInfos[localStreamStartIndex].streamId = allocation.streamId;
+      localStreamStartIndex++;
+    }
+
+
+    for (let i = 0; i < subscribeAck.tracks.length; i++) {
+      for (let streamInfo of this._remoteStreamInfos) {
+        if (streamInfo.streamId === subscribeAck.tracks[i].streamId) {
+          streamInfo.ssrc = subscribeAck.tracks[i].ssrc;
+          streamInfo.trackLabel = subscribeAck.tracks[i].trackLabel;
+        }
+      }
+    }
+    console.log('random subAck local after simulcast', JSON.stringify(this._localStreamInfos));
+    console.log('random subAck remote after', this._remoteStreamInfos);
   }
 
   allStreams(): DefaultVideoStreamIdSet {
@@ -144,10 +233,13 @@ export default class DefaultVideoStreamIndex implements VideoStreamIndex {
         if (source.attendeeId === selfAttendeeId || source.mediaType !== SdkStreamMediaType.VIDEO) {
           continue;
         }
-        if (
-          !maxes.has(source.groupId) ||
-          source.maxBitrateKbps > maxes.get(source.groupId).maxBitrateKbps
-        ) {
+
+        if (this.streamIdToBitrateKbpsMap.has(source.streamId) && this.streamIdToBitrateKbpsMap.get(source.streamId) === 0) {
+          console.info(`random streamId ${source.streamId} is has average bitrate 0`);
+          continue;
+        }
+        if (!maxes.has(source.groupId) ||
+            (source.maxBitrateKbps > maxes.get(source.groupId).maxBitrateKbps)) {
           maxes.set(source.groupId, source);
         }
       }

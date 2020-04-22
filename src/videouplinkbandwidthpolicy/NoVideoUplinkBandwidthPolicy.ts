@@ -8,6 +8,9 @@ import VideoUplinkBandwidthPolicy from '../videouplinkbandwidthpolicy/VideoUplin
 
 export default class NoVideoUplinkBandwidthPolicy implements VideoUplinkBandwidthPolicy {
   constructor() {}
+  chooseEncodingParameters(): Map<string, RTCRtpEncodingParameters> {
+    return null;
+  }
   updateIndex(_videoIndex: VideoStreamIndex): void {}
   wantsResubscribe(): boolean {
     return false;

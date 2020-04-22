@@ -4,8 +4,10 @@
 import VideoCaptureAndEncodeParameter from '../videocaptureandencodeparameter/VideoCaptureAndEncodeParameter';
 import VideoStreamIndex from '../videostreamindex/VideoStreamIndex';
 
-/** A VideoUplinkBandwidthPolicy makes decisions about uplink video
- * bandwidth usage and related camera capture parameters. */
+/**
+ * A [[VideoUplinkBandwidthPolicy]] makes decisions about uplink video
+ * bandwidth usage and related camera capture parameters.
+ */
 export default interface VideoUplinkBandwidthPolicy {
   /**
    * Potentially update the optimal capture and encode parameters
@@ -39,4 +41,9 @@ export default interface VideoUplinkBandwidthPolicy {
    * Sets whether video uplink bandwidth is currently prioritized.
    */
   setHasBandwidthPriority(hasBandwidthPriority: boolean): void;
+
+  /**
+   *
+   */
+  chooseEncodingParameters(): Map<string, RTCRtpEncodingParameters>;
 }

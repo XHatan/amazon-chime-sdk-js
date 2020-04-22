@@ -47,6 +47,8 @@ export default interface BrowserBehavior {
    */
   requiresUnifiedPlanMunging(): boolean;
 
+  requiresSimulcastMunging(): boolean
+
   /**
    * Returns the bundle policy for the browser
    */

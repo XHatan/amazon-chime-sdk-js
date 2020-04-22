@@ -113,16 +113,17 @@ export default class DefaultSignalingClient implements SignalingClient {
     }
     if (settings.localVideoEnabled) {
       subscribeFrame.duplex = SdkStreamServiceType.DUPLEX;
-      const videoStream = SdkStreamDescriptor.create();
-      videoStream.mediaType = SdkStreamMediaType.VIDEO;
-      videoStream.trackLabel = 'AmazonChimeExpressVideo';
-      videoStream.attendeeId = settings.attendeeId;
-      videoStream.streamId = 2;
-      videoStream.groupId = 2;
-      videoStream.framerate = settings.videoInputFrameRate;
-      videoStream.maxBitrateKbps = settings.videoInputMaxBitrateKbps;
-      subscribeFrame.sendStreams.push(videoStream);
+      for (let i = 0; i < settings.videoStreamDescriptions.length; i++) {
+        // TODO: feature flag it
+        const streamDescription = settings.videoStreamDescriptions[i];
+
+        streamDescription.trackLabel = streamDescription.trackLabel + i.toString();
+        streamDescription.attendeeId = settings.attendeeId;
+
+        subscribeFrame.sendStreams.push(streamDescription.toStreamDescriptor());
+      }
     }
+    console.log('random', JSON.stringify(subscribeFrame));
     const message = SdkSignalFrame.create();
     message.type = SdkSignalFrame.Type.SUBSCRIBE;
     message.sub = subscribeFrame;

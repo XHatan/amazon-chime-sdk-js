@@ -253,6 +253,9 @@ import SignalingClientJoin from './signalingclient/SignalingClientJoin';
 import SignalingClientObserver from './signalingclientobserver/SignalingClientObserver';
 import SignalingClientSubscribe from './signalingclient/SignalingClientSubscribe';
 import SignalingSession from './screenviewing/signalingsession/SignalingSession';
+import SimulcastTransceiverController from './transceivercontroller/SimulcastTransceiverController';
+import SimulcastUplinkPolicy from './videouplinkbandwidthpolicy/SimulcastUplinkPolicy';
+import SimulcastVideoStreamIndex from './videostreamindex/SimulcastVideoStreamIndex';
 import Some from './maybe/Some';
 import StatsCollector from './statscollector/StatsCollector';
 import StreamMetricReport from './clientmetricreport/StreamMetricReport';
@@ -267,9 +270,11 @@ import UnusableAudioWarningConnectionHealthPolicy from './connectionhealthpolicy
 import Versioning from './versioning/Versioning';
 import VideoAdaptiveSubscribePolicy from './videodownlinkbandwidthpolicy/VideoAdaptiveSubscribePolicy';
 import VideoCaptureAndEncodeParameter from './videocaptureandencodeparameter/VideoCaptureAndEncodeParameter';
+import VideoConnectionHealthPolicy from './connectionhealthpolicy/VideoConnectionHealthPolicy';
 import VideoDownlinkBandwidthPolicy from './videodownlinkbandwidthpolicy/VideoDownlinkBandwidthPolicy';
 import VideoElementFactory from './videoelementfactory/VideoElementFactory';
 import VideoLogEvent from './statscollector/VideoLogEvent';
+import VideoStreamDescription from './videostreamindex/VideoStreamDescription';
 import VideoStreamIdSet from './videostreamidset/VideoStreamIdSet';
 import VideoStreamIndex from './videostreamindex/VideoStreamIndex';
 import VideoTile from './videotile/VideoTile';
@@ -540,6 +545,9 @@ export {
   SignalingClientObserver,
   SignalingClientSubscribe,
   SignalingSession,
+  SimulcastTransceiverController,
+  SimulcastUplinkPolicy,
+  SimulcastVideoStreamIndex,
   Some,
   StatsCollector,
   StreamMetricReport,
@@ -554,9 +562,11 @@ export {
   Versioning,
   VideoAdaptiveSubscribePolicy,
   VideoCaptureAndEncodeParameter,
+  VideoConnectionHealthPolicy,
   VideoDownlinkBandwidthPolicy,
   VideoElementFactory,
   VideoLogEvent,
+  VideoStreamDescription,
   VideoStreamIdSet,
   VideoStreamIndex,
   VideoTile,

@@ -4,12 +4,13 @@
 import DefaultVideoAndEncodeParameter from '../videocaptureandencodeparameter/DefaultVideoCaptureAndEncodeParameter';
 import VideoStreamIndex from '../videostreamindex/VideoStreamIndex';
 import VideoUplinkBandwidthPolicy from './VideoUplinkBandwidthPolicy';
+import SimulcastTransceiverController from '../transceivercontroller/SimulcastTransceiverController'
 
-/** NScaleVideoUplinkBandwidthPolicy implements capture and encode
+/** SimulcastUplinkPolicy implements capture and encode
  *  parameters that are nearly equivalent to those chosen by the
  *  traditional native clients, except for a modification to
  *  maxBandwidthKbps described below. */
-export default class NScaleVideoUplinkBandwidthPolicy implements VideoUplinkBandwidthPolicy {
+export default class SimulcastUplinkPolicy implements VideoUplinkBandwidthPolicy {
   private numParticipants: number = 0;
   private optimalParameters: DefaultVideoAndEncodeParameter;
   private parametersInEffect: DefaultVideoAndEncodeParameter;
@@ -17,12 +18,38 @@ export default class NScaleVideoUplinkBandwidthPolicy implements VideoUplinkBand
   private hasBandwidthPriority: boolean = false;
 
   constructor(private selfAttendeeId: string) {
-    this.optimalParameters = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, false);
-    this.parametersInEffect = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, false);
+    this.optimalParameters = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, true);
+    this.parametersInEffect = new DefaultVideoAndEncodeParameter(0, 0, 0, 0, true);
   }
 
   chooseEncodingParameters(): Map<string, RTCRtpEncodingParameters> {
-    return null;
+    const qualityMap = new Map<string, RTCRtpEncodingParameters>();
+    qualityMap.set(
+      SimulcastTransceiverController.LOW_LEVEL_NAME,
+      {
+        rid: SimulcastTransceiverController.LOW_LEVEL_NAME,
+        scaleResolutionDownBy: 4,
+        maxBitrate: 400
+      }
+    );
+
+    qualityMap.set(
+      SimulcastTransceiverController.MID_LEVEL_NAME,
+      {
+        rid: SimulcastTransceiverController.MID_LEVEL_NAME,
+        scaleResolutionDownBy: 2,
+        maxBitrate: 800
+      }
+    );
+    qualityMap.set(
+      SimulcastTransceiverController.HIGH_LEVEL_NAME,
+      {
+        rid: SimulcastTransceiverController.HIGH_LEVEL_NAME,
+        scaleResolutionDownBy: 1,
+        maxBitrate: 1400
+      }
+    );
+    return qualityMap;
   }
 
   updateIndex(videoIndex: VideoStreamIndex): void {
@@ -48,20 +75,13 @@ export default class NScaleVideoUplinkBandwidthPolicy implements VideoUplinkBand
     return this.parametersInEffect.clone();
   }
 
-
   private captureWidth(): number {
-    let width = 640;
-    if (this.numParticipants > 4) {
-      width = 320;
-    }
+    const width = 1280;
     return width;
   }
 
   private captureHeight(): number {
-    let height = 360;
-    if (this.numParticipants > 4) {
-      height = 180;
-    }
+    let height = 720;
     return height;
   }
 

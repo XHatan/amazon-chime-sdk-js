@@ -1,5 +1,4 @@
-// Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 syntax = "proto2";
 
@@ -21,6 +20,7 @@ message SdkSignalFrame {
         PING_PONG = 19;
         AUDIO_STATUS = 20;
         CLIENT_METRIC = 21;
+        DATA_MESSAGE = 22;
     }
     required uint64 timestamp_ms = 1;
     required Type type = 2;
@@ -40,6 +40,7 @@ message SdkSignalFrame {
     optional SdkPingPongFrame ping_pong = 20;
     optional SdkAudioStatusFrame audio_status = 21;
     optional SdkClientMetricFrame client_metric = 22;
+    optional SdkDataMessageFrame data_message = 23;
 }
 
 message SdkErrorFrame {

@@ -96,5 +96,6 @@ export default class AttachMediaInputTask extends BaseTask {
       this.context.videoStreamIndex,
       this.context.videosToReceive
     );
+
   }
 }

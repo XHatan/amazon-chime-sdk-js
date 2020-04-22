@@ -1,8 +1,9 @@
 // Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { SdkIndexFrame, SdkSubscribeAckFrame } from '../signalingprotocol/SignalingProtocol.js';
+import { SdkIndexFrame, SdkSubscribeAckFrame, ISdkBitrateFrame } from '../signalingprotocol/SignalingProtocol.js';
 import VideoStreamIdSet from '../videostreamidset/VideoStreamIdSet';
+import VideoStreamDescription from './VideoStreamDescription';
 
 /**
  * [[VideoStreamIndex]] holds the set of video streams available on the server for subscription
@@ -72,4 +73,12 @@ export default interface VideoStreamIndex {
    * Returns the set of streams which are paused at source.
    */
   streamsPausedAtSource(): VideoStreamIdSet;
+
+  updateFromUplinkPolicyDecision(bitrates: RTCRtpEncodingParameters[]): void;
+
+  updateFromBitrateFrame(bitrateFrame: ISdkBitrateFrame): void
+
+  localStreamInfos(): VideoStreamDescription[];
+
+  remoteStreamInfos(): VideoStreamDescription[];
 }
